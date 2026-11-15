@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="物販アプリ">
+<title>物販アプリ</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#f2f4f7;font-family:system-ui,sans-serif}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;display:block}
+  #msg{padding:24px 20px;color:#333;line-height:1.7}
+</style>
+</head>
+<body>
+<!--
+  物販管理シート（配布版）の入口。生徒それぞれのアプリ（Google Apps Script）を枠に入れて開くだけのページ。
+  ・データは持たない。枠に入れるのは script.google.com のアプリだけ
+  ・アプリの番号と合言葉は「#」より後ろに置く（# 以降はサーバーに送られない）
+-->
+<script>
+(function () {
+  var h = new URLSearchParams(location.hash.slice(1));
+  var id = h.get('a') || '';
+  if (!/^AKfyc[\w-]{20,}$/.test(id)) {
+    document.body.innerHTML = '<div id="msg">リンクが正しくありません。シートのタブ「合言葉」のC列のリンクから開いてください。</div>';
+    return;
+  }
+  var 元 = 'https://script.google.com/macros/s/' + id + '/exec';
+  function 中身(q) { q = new URLSearchParams(q); q.delete('a'); if (!q.get('p')) q.set('p', 'menu'); return q; }
+  var 枠 = document.createElement('iframe');
+  枠.title = '物販アプリ';
+  枠.allow = 'clipboard-read; clipboard-write';
+  枠.src = 元 + '?' + 中身(h).toString();
+  document.body.appendChild(枠);
+  // アプリの中のリンクを押したら、この枠の中で次の画面を開く（外に出るとGoogleの青い帯が出るため）
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!/\.googleusercontent\.com$/.test(e.origin)) return;
+    if (!d || d.物販 !== '移動' || typeof d.url !== 'string') return;
+    if (d.url !== 元 && d.url.indexOf(元 + '?') !== 0) return;
+    try { 枠.contentWindow.location.replace(d.url); } catch (x) { 枠.src = d.url; }
+    try {
+      var q = 中身(d.url.split('?')[1] || '');
+      if (!q.get('k') && h.get('k')) q.set('k', h.get('k'));
+      history.replaceState(null, '', location.pathname + '#a=' + id + '&' + q.toString());
+    } catch (x) {}
+  });
+})();
+</script>
+</body>
+</html>
